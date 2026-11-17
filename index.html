@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colorado Water Rights Research Assistant</title>
+<meta name="description" content="Fast, professional research tool for Colorado water rights. Search decreed rights, view active calls, and track structures using official DWR data.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #151e2e;
+    --card-hover: #1c283c;
+    --accent: #3b82f6;
+    --accent-soft: #1e40af;
+    --cyan: #22d3ee;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #2d3a4f;
+    --success: #34d399;
+    --warning: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+    padding: 2rem 1rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 1.85rem; font-weight: 700; }
+  header .tagline { margin: 0.4rem 0 0; opacity: 0.9; font-size: 1.05rem; }
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0.75rem;
+    background: #0f172a;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+  }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover, nav a.active { color: var(--cyan); }
+  .container { max-width: 1140px; margin: 0 auto; padding: 1.25rem; }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 1.4rem;
+    margin-bottom: 1.4rem;
+    border: 1px solid var(--border);
+  }
+  h2 { margin-top: 0; font-size: 1.35rem; }
+  .search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.3rem; font-weight: 500; }
+  input, select, button {
+    font-family: inherit;
+    font-size: 1rem;
+  }
+  input, select {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0b1220;
+    color: var(--text);
+  }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover { background: #2563eb; }
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+  .results { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.7rem 0.55rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:hover { background: rgba(59, 130, 246, 0.07); }
+  .priority { font-weight: 700; color: var(--success); }
+  .senior { color: var(--warning); }
+  a { color: var(--cyan); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .loading, .error, .info {
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    margin-top: 0.75rem;
+  }
+  .loading { background: #1e293b; color: var(--muted); text-align: center; }
+  .error { background: #7f1d1d33; color: #fca5a5; }
+  .info { background: #1e3a8a33; color: #93c5fd; }
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: #334155;
+    margin-left: 0.4rem;
+  }
+  .watchlist-item, .call-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .disclaimer {
+    font-size: 0.82rem;
+    color: var(--muted);
+    background: #151e2e;
+    padding: 1.1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-top: 1.5rem;
+  }
+  footer {
+    text-align: center;
+    padding: 2rem 1rem 2.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+  }
+  .section { display: none; }
+  .section.active { display: block; }
+  @media (max-width: 640px) {
+    header h1 { font-size: 1.5rem; }
+    nav { gap: 0.8rem; font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Colorado Water Rights Research Assistant</h1>
+  <p class="tagline">Professional research tool powered by official Colorado DWR / CDSS data</p>
+</header>
+<nav>
+  <a href="#" class="active" data-section="search">Search Rights</a>
+  <a href="#" data-section="calls">Active Calls</a>
+  <a href="#" data-section="watchlist">Watchlist</a>
+  <a href="#" data-section="about">About & Resources</a>
+</nav>
+
+<div class="container">
+  <!-- SEARCH -->
+  <div id="search" class="section active">
+    <div class="card">
+      <h2>Search Decreed Water Rights</h2>
+      <p style="color:var(--muted); margin-top:0;">Search the official HydroBase Net Amounts list. WDID is the most precise. Structure name works well for partial matches.</p>
+      <div class="search-grid">
+        <div>
+          <label>WDID</label>
+          <input type="text" id="wdid" placeholder="e.g. 2400586">
+        </div>
+        <div>
+          <label>Structure Name</label>
+          <input type="text" id="structureName" placeholder="e.g. Peoples Ditch">
+        </div>
+        <div>
+          <label>County</label>
+          <input type="text" id="county" placeholder="e.g. Weld">
+        </div>
+        <div>
+          <label>Water Source</label>
+          <input type="text" id="waterSource" placeholder="e.g. South Platte">
+        </div>
+      </div>
+      <button onclick="searchRights()">Search</button>
+      <button class="secondary" onclick="clearSearch()" style="margin-left:0.5rem;">Clear</button>
+      <div id="searchStatus"></div>
+    </div>
+    <div class="card" id="resultsCard" style="display:none;">
+      <h2>Results <span id="resultCount" class="badge"></span></h2>
+      <div class="results" id="results"></div>
+    </div>
+  </div>
+
+  <!-- CALLS -->
+  <div id="calls" class="section">
+    <div class="card">
+      <h2>Active Administrative Calls</h2>
+      <p style="color:var(--muted); margin-top:0;">Current calls on Colorado streams. Data is live from DWR.</p>
+      <button onclick="loadCalls()">Load Active Calls</button>
+      <div id="callsStatus"></div>
+      <div id="callsList" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div id="watchlist" class="section">
+    <div class="card">
+      <h2>My Watchlist</h2>
+      <p style="color:var(--muted); margin-top:0;">Saved only in this browser. Use “Save” on search results.</p>
+      <div id="watchlistContent"></div>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <div id="about" class="section">
+    <div class="card">
+      <h2>About This Tool</h2>
+      <p>This research assistant gives Colorado water rights professionals a clean, fast interface to the public Division of Water Resources (DWR) HydroBase data via the official CDSS REST API.</p>
+      <p>It is designed for quick lookups of decreed rights (priority dates, amounts, case numbers, structure details) and current administrative calls. It is a convenience layer — not a replacement for official records, water court decrees, or professional judgment.</p>
+      <h3>Official Resources</h3>
+      <ul>
+        <li><a href="https://dwr.state.co.us/Tools" target="_blank">DWR Online Tools</a></li>
+        <li><a href="https://cdss.colorado.gov/" target="_blank">Colorado Decision Support Systems (CDSS)</a></li>
+        <li><a href="https://cowaterrights.com/" target="_blank">Colorado Water Rights (plain-language guide)</a></li>
+        <li><a href="https://dwr.state.co.us/Rest/GET/Help" target="_blank">CDSS REST API Documentation</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important Disclaimer:</strong> This tool is for research convenience only and is not legal advice. All data comes from the public Colorado Division of Water Resources CDSS / HydroBase systems and may not reflect the most current or complete information required for legal, transactional, or administrative purposes. Always verify results against official DWR records, water court decrees, and consult a licensed Colorado water rights attorney for professional advice. Use of this tool does not create an attorney-client relationship.
+  </div>
+</div>
+
+<footer>
+  Colorado Water Rights Research Assistant · Data source: Colorado DWR HydroBase via CDSS REST API · Not affiliated with the State of Colorado
+</footer>
+
+<script>
+const PROXY = "https://corsproxy.io/?";
+const API = "https://dwr.state.co.us/Rest/GET/api/v2";
+
+// Navigation
+document.querySelectorAll('nav a').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    link.classList.add('active');
+    document.getElementById(link.dataset.section).classList.add('active');
+    if (link.dataset.section === 'watchlist') renderWatchlist();
+  });
+});
+
+function clearSearch() {
+  ['wdid','structureName','county','waterSource'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('searchStatus').innerHTML = '';
+}
+
+async function searchRights() {
+  const status = document.getElementById('searchStatus');
+  const resultsCard = document.getElementById('resultsCard');
+  const resultsDiv = document.getElementById('results');
+
+  const params = new URLSearchParams({ format: 'json' });
+  const wdid = document.getElementById('wdid').value.trim();
+  const structureName = document.getElementById('structureName').value.trim();
+  const county = document.getElementById('county').value.trim();
+  const waterSource = document.getElementById('waterSource').value.trim();
+
+  if (!wdid && !structureName && !county && !waterSource) {
+    status.innerHTML = '<div class="error">Enter at least one search term.</div>';
+    return;
+  }
+  if (wdid) params.set('wdid', wdid);
+  if (structureName) params.set('structureName', structureName);
+  if (county) params.set('county', county.toUpperCase());
+  if (waterSource) params.set('waterSource', waterSource);
+
+  if (!wdid && !structureName) {
+    status.innerHTML = '<div class="error">For county or source-only searches, also enter a structure name or WDID to keep results manageable.</div>';
+    return;
+  }
+
+  status.innerHTML = '<div class="loading">Searching official DWR records…</div>';
+  resultsCard.style.display = 'none';
+
+  try {
+    const url = PROXY + encodeURIComponent(`${API}/waterrights/netamount?${params}`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Request failed');
+    const data = await resp.json();
+    const list = data.ResultList || [];
+    document.getElementById('resultCount').textContent = list.length + (data.ResultCount > list.length ? ` of ${data.ResultCount}` : '') + ' shown';
+
+    if (!list.length) {
+      resultsDiv.innerHTML = '<p>No matching water rights found.</p>';
+    } else {
+      resultsDiv.innerHTML = buildResultsTable(list.slice(0, 80));
+      if (list.length > 80) resultsDiv.innerHTML += '<p style="color:var(--muted);">Showing first 80 results. Refine your search for more precision.</p>';
+    }
+    resultsCard.style.display = 'block';
+    status.innerHTML = '';
+  } catch (err) {
+    status.innerHTML = '<div class="error">Could not reach the DWR API. Check your connection or try again. (If this persists, the free CORS proxy may be limited.)</div>';
+  }
+}
+
+function buildResultsTable(list) {
+  let html = `<table><thead><tr>
+    <th>Structure</th><th>WDID</th><th>Appropriation</th><th>Admin #</th><th>Net Absolute</th><th>Case / Uses</th><th></th>
+  </tr></thead><tbody>`;
+  list.forEach(item => {
+    const approp = item.appropriationDate ? item.appropriationDate.split('T')[0] : '—';
+    const isSenior = item.appropriationDate && item.appropriationDate < '1950-01-01';
+    const amount = item.netAbsolute != null ? `${item.netAbsolute} ${item.decreedUnits === 'C' ? 'cfs' : item.decreedUnits || ''}` : '—';
+    const cases = (item.associatedCaseNumbers || '').split(',')[0] || '—';
+    html += `<tr>
+      <td><strong>${escape(item.structureName)}</strong><br><small style="color:var(--muted);">${escape(item.waterSource)} · Div ${item.division}/WD ${item.waterDistrict}</small></td>
+      <td>${escape(item.wdid)}</td>
+      <td class="${isSenior ? 'senior' : 'priority'}">${approp}</td>
+      <td>${item.adminNumber || '—'}</td>
+      <td>${amount}</td>
+      <td>${escape(cases)}<br><small>${escape(item.decreedUses || '')}</small></td>
+      <td>
+        <a href="${item.moreInformation || '#'}" target="_blank">Official</a><br>
+        <button style="margin-top:4px;padding:0.3rem 0.6rem;font-size:0.8rem;" onclick="saveWatch('${item.wdid}', '${escapeJs(item.structureName)}')">Save</button>
+      </td>
+    </tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+async function loadCalls() {
+  const status = document.getElementById('callsStatus');
+  const listEl = document.getElementById('callsList');
+  status.innerHTML = '<div class="loading">Loading active calls…</div>';
+  listEl.innerHTML = '';
+  try {
+    const url = PROXY + encodeURIComponent(`${API}/administrativecalls/active?format=json`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    const calls = data.ResultList || [];
+    status.innerHTML = `<div class="info">${calls.length} active call${calls.length === 1 ? '' : 's'} statewide.</div>`;
+    if (!calls.length) {
+      listEl.innerHTML = '<p>No active calls at this time.</p>';
+      return;
+    }
+    listEl.innerHTML = calls.map(c => `
+      <div class="call-item">
+        <div>
+          <strong>${escape(c.waterSourceName || '')}</strong> (Div ${c.division})<br>
+          <small style="color:var(--muted);">Calling structure: ${escape(c.locationStructureName || '')} · Priority: ${escape(c.priorityStructureName || '')} (${c.priorityDate ? c.priorityDate.split('T')[0] : ''})</small>
+        </div>
+        <a href="${c.moreInformation || '#'}" target="_blank">Details</a>
+      </div>
+    `).join('');
+  } catch {
+    status.innerHTML = '<div class="error">Could not load active calls.</div>';
+  }
+}
+
+function saveWatch(wdid, name) {
+  const key = 'cwr-watchlist';
+  let list = JSON.parse(localStorage.getItem(key) || '[]');
+  if (list.some(x => x.wdid === wdid)) {
+    alert('Already in your watchlist.');
+    return;
+  }
+  list.push({ wdid, name, saved: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(list));
+  alert('Saved to watchlist.');
+}
+
+function renderWatchlist() {
+  const list = JSON.parse(localStorage.getItem('cwr-watchlist') || '[]');
+  const el = document.getElementById('watchlistContent');
+  if (!list.length) {
+    el.innerHTML = '<p style="color:var(--muted);">No structures saved yet. Search and use the Save button.</p>';
+    return;
+  }
+  el.innerHTML = list.map(item => `
+    <div class="watchlist-item">
+      <div>
+        <strong>${escape(item.name)}</strong><br>
+        <small style="color:var(--muted);">WDID ${item.wdid}</small>
+      </div>
+      <div>
+        <button class="secondary" style="padding:0.35rem 0.7rem;font-size:0.8rem;" onclick="quickSearch('${item.wdid}')">Search</button>
+        <button class="secondary" style="padding:0.35rem 0.7rem;font-size:0.8rem;margin-left:0.3rem;" onclick="removeWatch('${item.wdid}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function quickSearch(wdid) {
+  document.querySelector('nav a[data-section="search"]').click();
+  document.getElementById('wdid').value = wdid;
+  document.getElementById('structureName').value = '';
+  document.getElementById('county').value = '';
+  document.getElementById('waterSource').value = '';
+  searchRights();
+}
+
+function removeWatch(wdid) {
+  let list = JSON.parse(localStorage.getItem('cwr-watchlist') || '[]');
+  list = list.filter(x => x.wdid !== wdid);
+  localStorage.setItem('cwr-watchlist', JSON.stringify(list));
+  renderWatchlist();
+}
+
+function escape(str) {
+  if (str == null) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeJs(str) {
+  return String(str || '').replace(/'/g, "\\'");
+}
+
+// Enter key support
+['wdid','structureName','county','waterSource'].forEach(id => {
+  document.getElementById(id).addEventListener('keypress', e => {
+    if (e.key === 'Enter') searchRights();
+  });
+});
+
+renderWatchlist();
+</script>
+</body>
+</html>
